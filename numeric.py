@@ -89,6 +89,33 @@ def get_lambda_max(magnetic_field, magnetization_coefficient, temperature):
     )
 
 
+def get_free_energy_from_entropy(
+    number_of_spins, magnetic_field, magnetization_coefficient, temperature
+):
+    energy = get_average_energy(
+        magnetic_field, magnetization_coefficient, number_of_spins, temperature
+    )
+    return energy - temperature * np.log(get_number_of_combinations(energy))
+
+
+def get_number_of_combinations(energy):
+    pass
+
+
+def get_average_energy(
+    magnetic_field, magnetization_coefficient, number_of_spins, temperature
+):
+    partition_function = get_partition_function(
+        number_of_spins, magnetic_field, magnetization_coefficient, temperature
+    )
+    energy = 0
+    beta = 1 / temperature
+    for spins in iter_spins(number_of_spins):
+        current_energy = get_energy(spins, magnetic_field, magnetization_coefficient)
+        energy += current_energy * np.exp(-current_energy * beta)
+    return energy / partition_function
+
+
 if __name__ == "__main__":
     for number_of_particles in range(1, 13):
         main(
