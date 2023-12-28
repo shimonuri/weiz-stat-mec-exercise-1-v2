@@ -17,12 +17,18 @@ class Result:
     energy: float
 
 
-def main(magnetic_field, magnetization_coefficient, number_of_particles, ax=None):
+def main(
+    magnetic_field,
+    magnetization_coefficient,
+    number_of_particles,
+    ax=None,
+    should_plot_diff=False,
+):
     f_stat_mech = []
     f_approx = []
     f_thermodynamics = []
     energies = []
-    temperatures = np.linspace(0.28e-1, 1, 100)
+    temperatures = np.linspace(0.28e-1, 10, 50)
     for temperature in temperatures:
         result = calculate(
             number_of_particles,
@@ -39,12 +45,20 @@ def main(magnetic_field, magnetization_coefficient, number_of_particles, ax=None
         fig, ax = plt.subplots()
 
     ax.set_title(f"$N = {number_of_particles}$")
-    ax.plot(
-        temperatures, abs(np.array(f_stat_mech) - np.array(f_approx)), label="energy"
-    )
-    # ax.plot(temperatures, f_stat_mech, label="f_stat_mech")
-    # ax.plot(temperatures, f_approx, label="f_approx")
-    # ax.plot(temperatures, f_thermodynamics, label="f_thermodynamics")
+    if should_plot_diff:
+        ax.plot(
+            temperatures,
+            abs(np.array(f_stat_mech) - np.array(f_approx)),
+            label="Energy",
+        )
+        ax.set_ylabel("$|F_{stat.mech} - F_{approx}|$")
+        ax.set_xlabel("Temperature")
+    else:
+        ax.plot(temperatures, f_stat_mech, label="f_stat_mech")
+        ax.plot(temperatures, f_approx, label="f_approx")
+        ax.plot(temperatures, f_thermodynamics, label="f_thermodynamics")
+        ax.set_ylabel("Free Energy")
+        ax.set_xlabel("Temperature")
 
 
 def calculate(
@@ -165,7 +179,7 @@ def get_number_of_combinations(
         configuration_energy = get_energy(
             spins, magnetic_field, magnetization_coefficient
         )
-        if abs(configuration_energy - energy) < max(
+        if abs(configuration_energy - energy) < 2 * max(
             abs(magnetization_coefficient), abs(magnetic_field)
         ):
             number_of_combinations += 1
@@ -191,9 +205,10 @@ def get_average_energy(
     return energy / partition_function
 
 
-flag = False
+should_plot_different_ns = False
+should_plot_diff = False
 if __name__ == "__main__":
-    if flag:
+    if should_plot_different_ns:
         numbers_of_particles = range(1, 13)
         subplots = plt.subplots(4, 3, figsize=(15, 15), layout="tight")
     else:
@@ -209,6 +224,7 @@ if __name__ == "__main__":
             ax=subplots[1][subplot_x][subplot_y]
             if len(numbers_of_particles) is not 1
             else None,
+            should_plot_diff=should_plot_diff,
         )
 
     plt.savefig("n12_diff.png", dpi=300, bbox_inches="tight")
