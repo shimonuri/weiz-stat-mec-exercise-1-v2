@@ -11,13 +11,33 @@ plt.rcParams.update({"font.size": 22})
 class Result:
     partition_function: float
     lambda_max: float
+    lambda_min: float
     f_stat_mech: float
     f_approx: float
     f_thermodynamics: float
     energy: float
 
 
-def main(
+def plot_lambdas(magnetic_field, magnetization_coefficient):
+    temperatures = np.linspace(0.28e-1, 1, 50)
+    lambda_max = []
+    lambda_min = []
+    for temperature in temperatures:
+        lambda_max.append(
+            get_lambda_max(magnetic_field, magnetization_coefficient, temperature)
+        )
+        lambda_min.append(
+            abs(get_lambda_min(magnetic_field, magnetization_coefficient, temperature))
+        )
+
+    plt.plot(temperatures, lambda_max, label=f"$\lambda_{{max}}$")
+    plt.plot(temperatures, lambda_min, label=f"$\lambda_{{min}}$")
+    plt.semilogy()
+    plt.xlabel("Temperature")
+    plt.legend()
+
+
+def plot_free_energy(
     magnetic_field,
     magnetization_coefficient,
     number_of_particles,
@@ -71,6 +91,7 @@ def calculate(
         magnetic_field, magnetization_coefficient, number_of_particles, temperature
     )
     lambda_max = get_lambda_max(magnetic_field, magnetization_coefficient, temperature)
+    lambda_min = get_lambda_min(magnetic_field, magnetization_coefficient, temperature)
     f_entropy = get_free_energy_from_entropy(
         number_of_particles,
         magnetic_field,
@@ -81,8 +102,9 @@ def calculate(
     return Result(
         partition_function=partition_function,
         lambda_max=lambda_max,
+        lambda_min=lambda_min,
         f_stat_mech=-temperature * np.log(partition_function),
-        f_approx=-temperature * number_of_particles * np.log(lambda_max),
+        f_approx=-temperature * np.log((lambda_max**number_of_particles)),
         f_thermodynamics=f_entropy,
         energy=energy,
     )
@@ -114,9 +136,7 @@ def iter_spins(number_of_spins):
 def get_energy(spins, magnetic_field, magnetization_coefficient):
     energy = 0
     for i in range(len(spins)):
-        energy += (
-            -(magnetization_coefficient / 2) * spins[i] * spins[(i + 1) % len(spins)]
-        )
+        energy += -(magnetization_coefficient) * spins[i] * spins[(i + 1) % len(spins)]
         energy += -magnetic_field * spins[i]
 
     return energy
@@ -127,6 +147,17 @@ def get_lambda_max(magnetic_field, magnetization_coefficient, temperature):
     return np.exp(beta * magnetization_coefficient) * np.cosh(
         beta * magnetic_field
     ) + np.sqrt(
+        np.exp(2 * beta * magnetization_coefficient)
+        * np.power(np.cosh(beta * magnetic_field), 2)
+        - 2 * np.sinh(2 * beta * magnetic_field)
+    )
+
+
+def get_lambda_min(magnetic_field, magnetization_coefficient, temperature):
+    beta = 1 / temperature
+    return np.exp(beta * magnetization_coefficient) * np.cosh(
+        beta * magnetic_field
+    ) - np.sqrt(
         np.exp(2 * beta * magnetization_coefficient)
         * np.power(np.cosh(beta * magnetic_field), 2)
         - 2 * np.sinh(2 * beta * magnetic_field)
@@ -207,17 +238,24 @@ def get_average_energy(
 
 should_plot_different_ns = False
 should_plot_diff = False
+should_plot_lambda = True
 if __name__ == "__main__":
     if should_plot_different_ns:
         numbers_of_particles = range(1, 13)
         subplots = plt.subplots(4, 3, figsize=(15, 15), layout="tight")
     else:
-        numbers_of_particles = [12]
+        numbers_of_particles = [13]
+
+    if should_plot_lambda:
+        plot_lambdas(magnetic_field=-1, magnetization_coefficient=1)
+        plt.savefig("lambdas.png", dpi=300, bbox_inches="tight")
+        plt.show()
+        exit()
 
     for number_of_particles in numbers_of_particles:
         subplot_x = (number_of_particles - 1) // 3
         subplot_y = (number_of_particles - 1) % 3
-        main(
+        plot_free_energy(
             magnetic_field=-1,
             magnetization_coefficient=1,
             number_of_particles=number_of_particles,
